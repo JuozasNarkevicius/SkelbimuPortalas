@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
 import CommentModel from '../models/commentModel.js';
 import ItemModel from '../models/itemModel.js';
 import UserModel from '../models/userModel.js';
+import { validationResult } from 'express-validator';
 
 export const getComments = async (req, res) => {
     const { userId, itemId } = req.params;
@@ -70,6 +70,11 @@ export const createComment = async (req, res) => {
     const comment = req.body;
     const { userId, itemId } = req.params;
 
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     try {
         const user = await UserModel.findById(userId);
         const item = await ItemModel.findById(itemId);
@@ -87,7 +92,9 @@ export const createComment = async (req, res) => {
             return;
         }
 
-        const newComment = new CommentModel({ ...comment, itemId});
+        const newComment = new CommentModel({ itemId, ...comment });
+
+        newComment.userId = req.user.user_id;
 
         await newComment.save();
 
@@ -101,10 +108,15 @@ export const updateComment = async (req, res) => {
     const { userId, itemId, commentId } = req.params;
     const commentBody = req.body;
 
+    const user = await UserModel.findById(userId);
+    const item = await ItemModel.findById(itemId);
+    const comment = await CommentModel.findById(commentId);
+
+    if (req.user.user_id !== comment.userId) {
+        return res.status(403).json();
+    }
+
     try {
-        const user = await UserModel.findById(userId);
-        const item = await ItemModel.findById(itemId);
-        const comment = await CommentModel.findById(commentId);
 
         if(user === null) {
             res.status(404).json({ message: `User with id ${userId} not found!` });
@@ -140,10 +152,17 @@ export const updateComment = async (req, res) => {
 export const deleteComment = async (req, res) => {
     const { userId, itemId, commentId } = req.params;
 
+    const user = await UserModel.findById(userId);
+    const item = await ItemModel.findById(itemId);
+    const comment = await CommentModel.findById(commentId);
+
+    if (req.user.role !== "admin") {
+        if (req.user.user_id !== comment.userId) {
+            return res.status(403).json();
+        }
+    }
+
     try {
-        const user = await UserModel.findById(userId);
-        const item = await ItemModel.findById(itemId);
-        const comment = await CommentModel.findById(commentId);
 
         if(user === null) {
             res.status(404).json({ message: `User with id ${userId} not found!` });

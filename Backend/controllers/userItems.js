@@ -1,9 +1,15 @@
-import mongoose from 'mongoose';
 import ItemModel from '../models/itemModel.js';
 import UserModel from '../models/userModel.js';
+import { validationResult } from 'express-validator';
 
 export const getItems = async (req, res) => {
     const { userId } = req.params;
+
+    if (req.user.role !== "admin") {
+        if (req.user.user_id !== userId) {
+            return res.status(403).json();
+        }
+    }
 
     try {
 
@@ -50,6 +56,15 @@ export const createItem = async (req, res) => {
     const item = req.body;
     const { userId } = req.params;
 
+    if (req.user.user_id !== userId) {
+        return res.status(403).json();
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     try {
         const user = await UserModel.findById(userId);
 
@@ -70,6 +85,10 @@ export const createItem = async (req, res) => {
 export const updateItem = async (req, res) => {
     const { userId, itemId } = req.params;
     const itemBody = req.body;
+
+    if (req.user.user_id !== userId) {
+        return res.status(403).json();
+    }
 
     try {
 
@@ -99,6 +118,14 @@ export const updateItem = async (req, res) => {
 
 export const deleteItem = async (req, res) => {
     const { userId, itemId } = req.params;
+
+    console.log("person creating " + req.user.user_id + " id " + userId);
+
+    if (req.user.role !== "admin") {
+        if (req.user.user_id !== userId) {
+            return res.status(403).json();
+        }
+    }
 
     try {
         const user = await UserModel.findById(userId);

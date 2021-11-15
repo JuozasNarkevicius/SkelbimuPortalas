@@ -1,7 +1,11 @@
-import mongoose from 'mongoose';
 import UserModel from '../models/userModel.js';
 
 export const getUsers = async (req, res) => {
+
+    if ( req.user.role !== 'admin') {
+        return res.sendStatus(403).json();
+    }
+    
     try {
         const users = await UserModel.find();
 
@@ -13,6 +17,7 @@ export const getUsers = async (req, res) => {
 
 export const getUser = async (req, res) => {
     const { userId } = req.params;
+    
 
     try {
         const user = await UserModel.findById(userId);
@@ -25,6 +30,7 @@ export const getUser = async (req, res) => {
     } catch (error) {
         error.name === "CastError" ? res.status(400).json({message: "Id is in incorrect form"}) : res.status(404).json({message: error});
     }
+    
 }
 
 export const createUser = async (req, res) => {
@@ -45,14 +51,16 @@ export const updateUser = async (req, res) => {
     const { userId } = req.params;
     const userBody = req.body;
 
+    if (req.user.user_id !== userId) {
+        return res.status(403).json();
+    }
+
     try {
         const user = await UserModel.findById(userId);
 
         if(user === null) {
             res.status(404).json({ message: `User with id ${userId} not found!` });
         }
-
-        //if(!mongoose.Types.ObjectId.isValid(userId)) return res.status(404).json({ message: `User with id ${userId} not found!`});
 
         const updatedUser = await UserModel.findByIdAndUpdate(userId, userBody, { new: true });
 
@@ -64,6 +72,10 @@ export const updateUser = async (req, res) => {
 
 export const deleteUser = async (req, res) => {
     const { userId } = req.params;
+
+    if ( req.user.role !== 'admin') {
+        return res.sendStatus(403).json();
+    }
 
     try {
         const user = await UserModel.findById(userId);

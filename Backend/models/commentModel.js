@@ -6,7 +6,8 @@ const commentSchema = mongoose.Schema({
         type: Date,
         default: new Date()
     },
-    itemId: String
+    itemId: String,
+    userId: String
 });
 
 const CommentModel = mongoose.model('CommentModel', commentSchema);
